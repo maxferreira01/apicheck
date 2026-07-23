@@ -102,6 +102,17 @@ log "Atualizando ${MRPE_MAIN}"
 source "$CONF"
 touch "$MRPE_MAIN"
 
+# Agentes antigos não suportam "(interval=N)" no mrpe.cfg — a linha é ignorada.
+# Só usa cache se o binário do agente tiver a função run_cached.
+AGENT_BIN=$(command -v check_mk_agent || echo /usr/bin/check_mk_agent)
+if grep -q 'run_cached\|cached(' "$AGENT_BIN" 2>/dev/null; then
+    SVC_OPTS=" (interval=${SVC_INTERVAL})"
+    ok "agente suporta cache — usando (interval=${SVC_INTERVAL})"
+else
+    SVC_OPTS=""
+    warn "agente sem suporte a interval/cache — check vai rodar a cada poll (síncrono)"
+fi
+
 # Limpa restos de instalação antiga (esquema mrpe.cfg.d + include), se houver
 sed -i '\#^include *= */etc/check_mk/mrpe\.cfg\.d/apic-storage\.cfg#d' "$MRPE_MAIN"
 rm -f /etc/check_mk/mrpe.cfg.d/apic-storage.cfg
@@ -124,7 +135,7 @@ N_SVC=0
         case "$url" in
             *CHANGE_ME*|"") continue ;;
         esac
-        echo "${SVC_PREFIX}${fabric} (interval=${SVC_INTERVAL}) ${BIN_DST} ${fabric}"
+        echo "${SVC_PREFIX}${fabric}${SVC_OPTS} ${BIN_DST} ${fabric}"
         N_SVC=$((N_SVC + 1))
     done
     echo "$END_MARK"
