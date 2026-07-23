@@ -125,9 +125,11 @@ awk -v b="$BEGIN_MARK" -v e="$END_MARK" '
     !skip { print }
 ' "$MRPE_MAIN" > "$TMP"
 
+# Bloco vai no TOPO do arquivo: scripts MRPE que usam ssh sem -n engolem o
+# stdin do loop do agente (= o resto do mrpe.cfg), e linhas abaixo deles
+# nunca executam. No topo estamos imunes.
 N_SVC=0
 {
-    cat "$TMP"
     echo "${BEGIN_MARK} (gerado pelo install.sh — re-rode o install após editar ${CONF})"
     for var in $(compgen -A variable | grep '^FABRIC_' | sort); do
         fabric="${var#FABRIC_}"
@@ -139,6 +141,7 @@ N_SVC=0
         N_SVC=$((N_SVC + 1))
     done
     echo "$END_MARK"
+    cat "$TMP"
 } > "${TMP}.new"
 N_SVC=$(grep -c "^${SVC_PREFIX}" "${TMP}.new" || true)
 cat "${TMP}.new" > "$MRPE_MAIN"
